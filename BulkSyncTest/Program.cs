@@ -6,6 +6,11 @@ using Microsoft.EntityFrameworkCore.Design;
 
 namespace BulkSyncTest
 {
+    public class EntityWithMultipleDotsInTableName
+    {
+        public int Id { get; set; }
+    }
+
     public abstract class Base
     {
         public int Id { get; set; }
@@ -28,7 +33,8 @@ namespace BulkSyncTest
 
     public class MyDbContext : DbContext
     {
-        public DbSet<Base> Table { get; set; }
+        public DbSet<EntityWithMultipleDotsInTableName> DottedTableName { get; set; }
+        public DbSet<Base> Inheritance { get; set; }
 
         public MyDbContext() : base(new DbContextOptionsBuilder<MyDbContext>()
                 .UseSqlServer("")
@@ -42,10 +48,13 @@ namespace BulkSyncTest
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
+            builder.Entity<EntityWithMultipleDotsInTableName>().ToTable("Entity.With.Multiple.Dots.In.Table.Name");
+
             builder.Entity<Base>();
             builder.Entity<InheritEmpty>().HasBaseType<Base>();
             builder.Entity<InheritA>().HasBaseType<Base>();
             builder.Entity<InheritB>().HasBaseType<Base>();
+
             base.OnModelCreating(builder);
         }
     }
@@ -76,35 +85,8 @@ namespace BulkSyncTest
             var syncContext = new MyDbContext(syncOptions);
             syncContext.Database.EnsureCreated();
 
-
-            if (!context.Table.Any())
-            {
-                // add items to table if empty
-                for (int i = 0; i < 100; i++)
-                {
-                    var _ = (i % 3) switch
-                    {
-                        2 => context.Table.Add(new InheritEmpty()),
-                        1 => context.Table.Add(new InheritA()),
-                        0 => context.Table.Add(new InheritB()),
-                        _ => throw new NotImplementedException()
-                    };
-                }
-                context.SaveChanges();
-            }
-
-            try
-            {
-                syncContext.BulkSynchronize(context.Table, options =>
-                {
-                    options.SynchronizeKeepidentity = true;
-                });
-            }
-            catch (InvalidCastException exc)
-            {
-                // relevant for this bug report
-                Console.WriteLine(exc);
-            }
+            TableNameWithMultipleDots.Demo(context, syncContext);
+            Inheritance.Demo(context, syncContext);
         }
     }
 }
