@@ -7,9 +7,9 @@ namespace BulkSyncTest
     {
         public static void Demo(MyDbContext context, MyDbContext syncContext)
         {
-            if (!context.ProfileTemplates.Any())
+            if (!context.ComplexTypes.Any())
             {
-                context.ProfileTemplates.Add(new Complex
+                context.ComplexTypes.Add(new Complex
                 {
                     OwnedA = new OwnedA
                     {
@@ -21,7 +21,7 @@ namespace BulkSyncTest
             }
             try
             {
-                syncContext.BulkSynchronize(context.ProfileTemplates, options =>
+                syncContext.BulkSynchronize(context.ComplexTypes, options =>
                 {
                     options.SynchronizeKeepidentity = true;
                 });

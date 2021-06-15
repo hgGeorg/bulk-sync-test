@@ -65,7 +65,7 @@ namespace BulkSyncTest
     {
         public DbSet<EntityWithMultipleDotsInTableName> DottedTableName { get; set; }
         public DbSet<Base> Inheritance { get; set; }
-        public DbSet<Complex> ProfileTemplates { get; set; }
+        public DbSet<Complex> ComplexTypes { get; set; }
 
         public MyDbContext() : base(new DbContextOptionsBuilder<MyDbContext>()
                 .UseSqlServer("")
