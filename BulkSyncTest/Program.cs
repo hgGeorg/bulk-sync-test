@@ -88,11 +88,11 @@ namespace BulkSyncTest
 
             builder.Entity<Complex>(entity =>
             {
-                entity.OwnsOneRequired(e => e.OwnedA, pm =>
+                entity.OwnsOne(e => e.OwnedA, pm =>
                 {
                     pm.HasOne(m => m.Referenced).WithMany().HasForeignKey(m => m.ReferencedId).IsRequired(false).OnDelete(DeleteBehavior.Restrict);
                 });
-                entity.OwnsOneRequired(e => e.OwnedB);
+                entity.OwnsOne(e => e.OwnedB);
             });
 
             builder.Entity<Referenced>();
@@ -130,27 +130,6 @@ namespace BulkSyncTest
             //TableNameWithMultipleDots.Demo(context, syncContext);
             //Inheritance.Demo(context, syncContext);
             ComplexModel.Demo(context, syncContext);
-        }
-    }
-
-    public static class Helpers
-    {
-        public static OwnedNavigationBuilder<TEntity, TRelatedEntity> OwnsOneRequired<TEntity, TRelatedEntity>(this EntityTypeBuilder<TEntity> entity, Expression<Func<TEntity, TRelatedEntity>> navigationExpression)
-            where TEntity : class
-            where TRelatedEntity : class
-        {
-            var builder = entity.OwnsOne(navigationExpression);
-            entity.Navigation(navigationExpression).IsRequired();
-            return builder;
-        }
-
-        public static EntityTypeBuilder<TEntity> OwnsOneRequired<TEntity, TRelatedEntity>(this EntityTypeBuilder<TEntity> entity, Expression<Func<TEntity, TRelatedEntity>> navigationExpression, Action<OwnedNavigationBuilder<TEntity, TRelatedEntity>> buildAction)
-            where TEntity : class
-            where TRelatedEntity : class
-        {
-            var builder = entity.OwnsOne(navigationExpression, buildAction);
-            entity.Navigation(navigationExpression).IsRequired();
-            return builder;
         }
     }
 }
