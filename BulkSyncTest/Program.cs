@@ -1,16 +1,20 @@
 ﻿using System;
-using System.Linq;
+using System.Linq.Expressions;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace BulkSyncTest
 {
+    #region Multiple periods/dots
     public class EntityWithMultipleDotsInTableName
     {
         public int Id { get; set; }
     }
+    #endregion
 
+    #region Inheritance
     public abstract class Base
     {
         public int Id { get; set; }
@@ -30,11 +34,38 @@ namespace BulkSyncTest
     {
         public string SomeOtherPropB { get; set; }
     }
+    #endregion
+
+    #region Complex
+    public class Complex
+    {
+        public int Id { get; set; }
+        public OwnedA OwnedA { get; set; }
+        public OwnedB OwnedB { get; set; }
+    }
+
+    public class OwnedA
+    {
+        public int? ReferencedId { get; set; }
+        public Referenced Referenced { get; set; }
+    }
+
+    public class Referenced
+    {
+        public int Id { get; set; }
+    }
+
+    public class OwnedB
+    {
+        public string Content { get; set; }
+    }
+    #endregion
 
     public class MyDbContext : DbContext
     {
         public DbSet<EntityWithMultipleDotsInTableName> DottedTableName { get; set; }
         public DbSet<Base> Inheritance { get; set; }
+        public DbSet<Complex> ProfileTemplates { get; set; }
 
         public MyDbContext() : base(new DbContextOptionsBuilder<MyDbContext>()
                 .UseSqlServer("")
@@ -54,6 +85,17 @@ namespace BulkSyncTest
             builder.Entity<InheritEmpty>().HasBaseType<Base>();
             builder.Entity<InheritA>().HasBaseType<Base>();
             builder.Entity<InheritB>().HasBaseType<Base>();
+
+            builder.Entity<Complex>(entity =>
+            {
+                entity.OwnsOneRequired(e => e.OwnedA, pm =>
+                {
+                    pm.HasOne(m => m.Referenced).WithMany().HasForeignKey(m => m.ReferencedId).IsRequired(false).OnDelete(DeleteBehavior.Restrict);
+                });
+                entity.OwnsOneRequired(e => e.OwnedB);
+            });
+
+            builder.Entity<Referenced>();
 
             base.OnModelCreating(builder);
         }
@@ -85,8 +127,30 @@ namespace BulkSyncTest
             var syncContext = new MyDbContext(syncOptions);
             syncContext.Database.EnsureCreated();
 
-            TableNameWithMultipleDots.Demo(context, syncContext);
-            Inheritance.Demo(context, syncContext);
+            //TableNameWithMultipleDots.Demo(context, syncContext);
+            //Inheritance.Demo(context, syncContext);
+            ComplexModel.Demo(context, syncContext);
+        }
+    }
+
+    public static class Helpers
+    {
+        public static OwnedNavigationBuilder<TEntity, TRelatedEntity> OwnsOneRequired<TEntity, TRelatedEntity>(this EntityTypeBuilder<TEntity> entity, Expression<Func<TEntity, TRelatedEntity>> navigationExpression)
+            where TEntity : class
+            where TRelatedEntity : class
+        {
+            var builder = entity.OwnsOne(navigationExpression);
+            entity.Navigation(navigationExpression).IsRequired();
+            return builder;
+        }
+
+        public static EntityTypeBuilder<TEntity> OwnsOneRequired<TEntity, TRelatedEntity>(this EntityTypeBuilder<TEntity> entity, Expression<Func<TEntity, TRelatedEntity>> navigationExpression, Action<OwnedNavigationBuilder<TEntity, TRelatedEntity>> buildAction)
+            where TEntity : class
+            where TRelatedEntity : class
+        {
+            var builder = entity.OwnsOne(navigationExpression, buildAction);
+            entity.Navigation(navigationExpression).IsRequired();
+            return builder;
         }
     }
 }
